@@ -2,10 +2,10 @@
 
 # Models and datasets to evaluate
 MODELS=(
-    "anthropic/claude-3-5-haiku-latest"
+    "anthropic/claude-3-haiku-20240307"
     "gemini/gemini-2.0-flash-lite"
-    "openai/gpt-4o-mini"
-
+    "openai/gpt-4o-mini-2024-07-18"
+    "xai/grok-2-latest"
 )
 
 DATASETS=(

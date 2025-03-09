@@ -150,6 +150,11 @@ def load_api_keys():
         with open("keys/gemini_key.txt", "r") as f:
             os.environ["GEMINI_API_KEY"] = f.read().strip()
 
+    # Load XAI API key if file exists
+    if os.path.exists("keys/xai_key.txt"):
+        with open("keys/xai_key.txt", "r") as f:
+            os.environ["XAI_API_KEY"] = f.read().strip()
+
 def main():
     parser = argparse.ArgumentParser(description='Evaluate LLMs on image comparison tasks')
     parser.add_argument('--model', type=str, required=True, 
