@@ -6,22 +6,29 @@ This repository provides a framework for comparing capabilities of Vision-Langua
 
 # Recognition
 
-This repo compares performance of
+Benchmarked models:
 
-**Benchmarked models:**
+	Commercial APIs VLM:
+	- Anthropic Haiku
+	- OpenAI GPT-4o-mini
+	- Grok-2 vision
+	- Gemini-2-flash-lite
 
-Commercial APIs VLM:
-- Anthropic Haiku
-- OpenAI GPT-4o-mini
-- Grok-2 vision
-- Gemini-2-flash-lite
+	Open source VML:
+	- LLava Next (https://github.com/LLaVA-VL/LLaVA-NeXT)
 
-Open source VML:
-- LLava Next (https://github.com/LLaVA-VL/LLaVA-NeXT)
+	Face recognition systems:
+	- Insightface arface-resnet-100 (https://github.com/deepinsight/insightface/tree/master/recognition/arcface_torch)
+	![LLM face recognition](assets/combined_performance_metrics.png?raw=true "Title")
 
-Face recognition systems:
-- Insightface arface-resnet-100 (https://github.com/deepinsight/insightface/tree/master/recognition/arcface_torch)
+Datasets:
+
+	AgeDB-30
+	LFW
+	CALFW
+	CPLFW
+
+
+Results
+
 ![LLM face recognition](assets/combined_performance_metrics.png?raw=true "Title")
-
-# Counting
-[WIP]
