@@ -30,4 +30,20 @@ Datasets:
 
 Results
 
-![LLM face recognition](assets/combined_performance_metrics.png?raw=true "Title")
+![LLM face recognition](assets/recognition_metrics.png?raw=true "Title")
+
+# Counting 
+
+We evaluate the capacity of VLMs to count faces in a scene. Counting is performed on Wideface validation data.
+
+Benchmarked models:
+
+	Commercial API VLMs:
+	- Anthropic Haiku
+	- OpenAI GPT-4o-mini
+	- Grok-2 vision
+	- Gemini-2-flash-lite
+
+Since models sometimes refuse a query
+
+![LLM face counting](assets/counting_metrics.png?raw=true "Title")

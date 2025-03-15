@@ -14,7 +14,6 @@ DATASETS=(
     "cplfw"
     "lfw"
 )
-
 # Create a new summary_results.csv with headers
 echo "Model,$(IFS=,; echo "${DATASETS[*]}")" > summary_results.csv
 

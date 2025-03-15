@@ -90,7 +90,7 @@ def evaluate_face_counter(model_name, dataset_dir, annotation_file):
     """
     # Extract model name without provider prefix for filename
     model_short_name = model_name.split('/')[-1]
-    csv_filename = os.path.join("out", f"face_counting_{model_short_name}.csv")
+    csv_filename = os.path.join("out_counting", f"face_counting_{model_short_name}.csv")
     
     print(f"Evaluating {model_name} on face counting task...")
     
@@ -144,16 +144,38 @@ def evaluate_face_counter(model_name, dataset_dir, annotation_file):
 
             # Convert to PIL Image
             pil_img = Image.fromarray(img_rgb)
+            max_size = 5 * 1024 * 1024  # 5MB in bytes
+            current_width, current_height = pil_img.size
+            scale_factor = 1.0
+
+            while True:
+                # Save to bytes buffer in PNG format
+                buffer = io.BytesIO()
+                pil_img.save(buffer, format="PNG")
+                buffer.seek(0)
     
-            # Save to bytes buffer in PNG format
-            buffer = io.BytesIO()
-            pil_img.save(buffer, format="PNG")
+                # Check size
+                if len(buffer.getvalue()) <= max_size:
+                    break
+    
+                # Resize by 50%
+                scale_factor *= 0.5
+                new_width = int(current_width * scale_factor)
+                new_height = int(current_height * scale_factor)
+                pil_img = pil_img.resize((new_width, new_height), Image.LANCZOS)
+    
+                print(f"Resizing image to {new_width}x{new_height} (scale: {scale_factor:.2f})")
+    
+                # Safety check to prevent infinite loop with images that can't be compressed enough
+                if new_width < 200 or new_height < 200:
+                    print(f"Warning: Cannot reduce image {img_path} below 5MB even at very small size")
+                    break
             buffer.seek(0)
     
             # Encode to base64
             encoded_file = base64.b64encode(buffer.getvalue()).decode("utf-8")
             base64_url = f"data:image/png;base64,{encoded_file}"
-                    
+            
             # Prepare prompt
             prompt = [
                 {"role": "system", "content": "You are an AI assistant that specializes in analyzing images. Please provide accurate and concise information."},
@@ -168,13 +190,17 @@ def evaluate_face_counter(model_name, dataset_dir, annotation_file):
                 response = completion(model=model_name, messages=prompt, temperature=0.0, max_tokens=10)
                 response_text = response.choices[0].message.content
                 parsed_response = parse_face_count_response(response_text)
-                
+                try:
+                    clean_response = response_text.strip().replace('\n', ' ').replace('\r', ' ')
+                except:
+                    clean_response = ""
+
                 # Create result dictionary
                 result = {
                     'filename': filename,
                     'gt_num_faces': gt_num_faces,
                     'response_num_faces': parsed_response,
-                    'raw_response': response_text.strip().replace('\n', ' ').replace('\r', ' ')
+                    'raw_response': clean_response
                 }
                 
                 

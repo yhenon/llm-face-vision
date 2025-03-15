@@ -4,11 +4,11 @@ import os
 import numpy as np
 import glob
 import sklearn.metrics
-from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 
 def calculate_metrics(csv_file):
     """
-    Calculate precision, recall, and refusal rate from a results CSV file
+    Calculate precision, recall, accuracy, and refusal rate from a results CSV file
     """
     df = pd.read_csv(csv_file)
     
@@ -18,7 +18,7 @@ def calculate_metrics(csv_file):
     # Calculate refusal rate
     refusal_rate = df['is_refusal'].mean() * 100  # as percentage
     
-    # For precision and recall calculations, treat refusals as incorrect predictions
+    # For precision, recall, and accuracy calculations, treat refusals as incorrect predictions
     # Create a new column for adjusted predictions where refusals are set to incorrect (0)
     df['adjusted_prediction'] = df['prediction'].copy()
     
@@ -30,7 +30,7 @@ def calculate_metrics(csv_file):
     # Make sure adjusted_prediction is an integer
     df['adjusted_prediction'] = df['adjusted_prediction'].astype(int)
     
-    # Now calculate precision and recall using the adjusted predictions
+    # Now calculate precision, recall, and accuracy using the adjusted predictions
     y_true = df['ground_truth']
     y_pred = df['adjusted_prediction']
     
@@ -38,6 +38,9 @@ def calculate_metrics(csv_file):
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
     f1 = f1_score(y_true, y_pred, zero_division=0)
+    
+    # Calculate accuracy
+    accuracy = accuracy_score(y_true, y_pred)
     
     # Extract model name from the filename
     model_name = os.path.basename(csv_file).split('_')[-1].split('.')[0]
@@ -51,13 +54,14 @@ def calculate_metrics(csv_file):
         'precision': precision,
         'recall': recall,
         'f1': f1,
+        'accuracy': accuracy,  # Added accuracy
         'refusal_rate': refusal_rate,
         'total_samples': len(df)
     }
 
 def calculate_arcface_metrics(csv_file):
     """
-    Calculate precision-recall curve and F1 scores for ArcFace results
+    Calculate precision-recall curve, accuracy, and F1 scores for ArcFace results
     """
     df = pd.read_csv(csv_file)
     
@@ -81,18 +85,34 @@ def calculate_arcface_metrics(csv_file):
     # Calculate precision-recall curve
     precision, recall, thresholds = sklearn.metrics.precision_recall_curve(y_true.tolist(), scores.tolist())
     
-    # Calculate F1 scores for each threshold
+    # Calculate F1 scores and accuracy for each threshold
     f1_scores = np.zeros_like(thresholds)
-    for i, (p, r) in enumerate(zip(precision[:-1], recall[:-1])):
+    accuracies = np.zeros_like(thresholds)
+    
+    for i, threshold in enumerate(thresholds):
+        # Create binary predictions based on threshold
+        y_pred = (scores >= threshold).astype(int)
+        
+        # Calculate F1 score
+        p = precision[i]
+        r = recall[i]
         if p + r > 0:  # Avoid division by zero
             f1_scores[i] = 2 * p * r / (p + r)
+        
+        # Calculate accuracy
+        accuracies[i] = accuracy_score(y_true, y_pred)
     
-    # Find the threshold with the best F1 score
-    best_idx = np.argmax(f1_scores)
-    best_threshold = thresholds[best_idx]
-    best_precision = precision[best_idx]
-    best_recall = recall[best_idx]
-    best_f1 = f1_scores[best_idx]
+    # Find the threshold with the best accuracy
+    best_acc_idx = np.argmax(accuracies)
+    best_acc_threshold = thresholds[best_acc_idx]
+    best_acc_precision = precision[best_acc_idx]
+    best_acc_recall = recall[best_acc_idx]
+    best_accuracy = accuracies[best_acc_idx]
+    
+    # Find the threshold with the best F1 score (keep for comparison)
+    best_f1_idx = np.argmax(f1_scores)
+    best_f1_threshold = thresholds[best_f1_idx]
+    best_f1 = f1_scores[best_f1_idx]
     
     results = {
         'model': 'arcface',
@@ -102,15 +122,19 @@ def calculate_arcface_metrics(csv_file):
         'recall': recall,
         'f1': best_f1,
         'best_f1': best_f1,
-        'best_threshold': best_threshold,
-        'best_precision': best_precision,
-        'best_recall': best_recall
+        'best_f1_threshold': best_f1_threshold,
+        'accuracy': best_accuracy,  # Added accuracy
+        'best_accuracy': best_accuracy,
+        'best_acc_threshold': best_acc_threshold,
+        'best_acc_precision': best_acc_precision,
+        'best_acc_recall': best_acc_recall
     }
     
     print(f"ArcFace best results for {dataset_name}:")
-    print(f"  Best F1: {results['best_f1']:.4f} at threshold {results['best_threshold']:.4f}")
-    print(f"  Precision: {results['best_precision']:.4f}")
-    print(f"  Recall: {results['best_recall']:.4f}")
+    print(f"  Best Accuracy: {results['best_accuracy']:.4f} at threshold {results['best_acc_threshold']:.4f}")
+    print(f"  Best F1: {results['best_f1']:.4f} at threshold {results['best_f1_threshold']:.4f}")
+    print(f"  Precision: {results['best_acc_precision']:.4f}")
+    print(f"  Recall: {results['best_acc_recall']:.4f}")
     
     return results
 
@@ -136,7 +160,7 @@ def create_combined_plots(all_metrics, arcface_results=None, output_file=None):
     
     # We'll create 3 rows of subplots:
     # 1. Precision-Recall
-    # 2. F1 Scores
+    # 2. Accuracy Scores (was F1 Scores)
     # 3. Refusal Rates
     
     # Create a single legend for the entire figure
@@ -172,8 +196,8 @@ def create_combined_plots(all_metrics, arcface_results=None, output_file=None):
                     ax.plot(arc_result['recall'], arc_result['precision'], 
                            color=arcface_color, linestyle='-', linewidth=2)
                     
-                    # Mark the best F1 point
-                    ax.scatter(arc_result['best_recall'], arc_result['best_precision'], 
+                    # Mark the best accuracy point
+                    ax.scatter(arc_result['best_acc_recall'], arc_result['best_acc_precision'], 
                               s=150, color=arcface_color, marker='*', 
                               edgecolor='white', linewidth=1.5)
         
@@ -189,7 +213,7 @@ def create_combined_plots(all_metrics, arcface_results=None, output_file=None):
         # Add diagonal line representing random performance
         ax.plot([0, 1], [0, 1], linestyle='--', color='gray', alpha=0.5)
     
-    # Row 2: F1 Score plots
+    # Row 2: Accuracy Score plots (was F1 Score)
     for i, dataset in enumerate(datasets):
         ax = fig.add_subplot(3, len(datasets), len(datasets) + i + 1)
         
@@ -201,12 +225,12 @@ def create_combined_plots(all_metrics, arcface_results=None, output_file=None):
         
         # Extract data for plotting
         plot_models = [m['model'] for m in dataset_metrics]
-        f1_scores = [m['f1'] for m in dataset_metrics]
+        accuracy_scores = [m['accuracy'] for m in dataset_metrics]  # Changed to accuracy
         
         # Create horizontal bar chart with consistent colors
-        bars = ax.barh(plot_models, f1_scores, color=[model_colors[model] for model in plot_models])
+        bars = ax.barh(plot_models, accuracy_scores, color=[model_colors[model] for model in plot_models])
         
-        # Add ArcFace F1 score if available
+        # Add ArcFace accuracy score if available
         if arcface_results:
             for arc_result in arcface_results:
                 if arc_result['dataset'] == dataset:
@@ -216,11 +240,11 @@ def create_combined_plots(all_metrics, arcface_results=None, output_file=None):
                     
                     # Clear existing plot and redraw with ArcFace included
                     ax.clear()
-                    all_f1_scores = [arc_result['best_f1']] + f1_scores
+                    all_accuracy_scores = [arc_result['best_accuracy']] + accuracy_scores  # Changed to accuracy
                     all_colors = [arcface_color] + [model_colors[model] for model in plot_models]
                     
                     # Create horizontal bar chart with all models
-                    bars = ax.barh(all_models, all_f1_scores, color=all_colors)
+                    bars = ax.barh(all_models, all_accuracy_scores, color=all_colors)
                     
                     # Add value labels
                     for j, bar in enumerate(bars):
@@ -229,7 +253,7 @@ def create_combined_plots(all_metrics, arcface_results=None, output_file=None):
                                f'{width:.3f}', va='center')
                     
                     # Add a horizontal line across the plot to highlight ArcFace performance
-                    ax.axvline(x=arc_result['best_f1'], color=arcface_color, 
+                    ax.axvline(x=arc_result['best_accuracy'], color=arcface_color,  # Changed to accuracy
                               linestyle='--', alpha=0.7, linewidth=1)
                 else:
                     # If there's no ArcFace result for this dataset, add value labels to the original bars
@@ -249,7 +273,7 @@ def create_combined_plots(all_metrics, arcface_results=None, output_file=None):
             ax.set_ylabel('Model')
         else:
             ax.set_yticklabels([])  # Hide y-tick labels for all but the first plot
-        ax.set_xlabel('F1 Score')
+        ax.set_xlabel('Accuracy')  # Changed from F1 Score
         ax.set_xlim(0, 1.05)
         ax.grid(axis='x', linestyle='--', alpha=0.7)
     
@@ -286,11 +310,6 @@ def create_combined_plots(all_metrics, arcface_results=None, output_file=None):
         ax.set_xlim(0, max_rate * 1.2)
         ax.grid(axis='x', linestyle='--', alpha=0.7)
     
-    # Add row titles
-    #row_titles = ['Precision vs. Recall', 'F1 Scores', 'Refusal Rates']
-    #for i, title in enumerate(row_titles):
-    #    fig.text(0.5, 0.99 - i*0.33, title, ha='center', va='top', fontsize=16, fontweight='bold')
-    
     # Add the legend at the bottom of the figure
     fig.legend(handles=legend_handles, loc='lower center', ncol=min(len(models) + 1, 6), 
                bbox_to_anchor=(0.5, 0), fontsize=12)
@@ -326,6 +345,7 @@ def main():
         print(f"  Model: {metrics['model']}")
         print(f"  Precision: {metrics['precision']:.4f}")
         print(f"  Recall: {metrics['recall']:.4f}")
+        print(f"  Accuracy: {metrics['accuracy']:.4f}")  # Added accuracy
         print(f"  F1 Score: {metrics['f1']:.4f}")
         print(f"  Refusal Rate: {metrics['refusal_rate']:.2f}%")
         print(f"  Total Samples: {metrics['total_samples']}")
