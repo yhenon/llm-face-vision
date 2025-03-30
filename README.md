@@ -3,8 +3,14 @@
 
 This repository provides a framework for comparing capabilities of Vision-Language Models (VLMs) to dedicated face recognition systems. 
 
-
 # Recognition
+
+![lfw example](./assets/illustrate2.png)
+
+Results
+
+![LLM face recognition](assets/recognition_metrics.png?raw=true "Title")
+
 
 Benchmarked models:
 
@@ -16,6 +22,8 @@ Benchmarked models:
 
 	Open source VLMs:
 	- LLava Next (https://github.com/LLaVA-VL/LLaVA-NeXT)
+	- Gemma-3-27B
+	- Mistral-small-3.1-24b-instruct
 
 	Face recognition systems:
 	- Insightface arface-resnet-100 (https://github.com/deepinsight/insightface/tree/master/recognition/arcface_torch)
@@ -27,10 +35,6 @@ Datasets:
 	CALFW
 	CPLFW
 
-
-Results
-
-![LLM face recognition](assets/recognition_metrics.png?raw=true "Title")
 
 # Counting 
 
